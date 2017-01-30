@@ -76,6 +76,12 @@ homeassistant:
       friendly_name: Heath's Office Floor Lamp Outlet
     light.heaths_office_can_light_level_20_0:
       friendly_name: Heath's Office Can Light
+    sensor.garage_door_time_in_state:
+      icon: mdi:timer-sand
+    sensor.garage_door_wifi_signal_strength:
+      icon: mdi:wifi
+    cover.garage_door:
+      homebridge_cover_type: garage_door
 
 
 # Show links to resources in log and frontend
@@ -111,6 +117,10 @@ history:
 
 # View all events in a logbook
 logbook:
+  exclude:
+    entities:
+      - sensor.garage_door_time_in_state
+      - sensor.garage_door_wifi_signal_strength
 
 # Track the sun
 sun:
@@ -126,14 +136,22 @@ sun:
 # LG Living Room TV
 media_player:
   platform: lg_netcast
-  host: 192.168.2.152
-  access_token: !secret media_center_lr_tv
+  host: !secret media_center_lr_tv_ip
+  access_token: !secret media_center_lr_tv_access_token
   name: Living Room TV
 
 # ecobee
 ecobee:
   api_key: !secret ecobee_api_key
   hold_temp: true
+
+cover:
+  platform: garadget
+  covers:
+      !secret garadget_id:
+        username:  !secret garadget_username
+        password:  !secret garadget_password
+        name:  Garage Door
 
 # Wink Configuration
 # wink:
@@ -176,7 +194,20 @@ sensor:
       - precip_intensity_max
 
   - platform: pi_hole
-    host: 192.168.2.11
+    host: !secret pi_hole_ip
+
+  - platform: template
+    sensors:
+      garage_door_status:
+        friendly_name: 'State of the door'
+        value_template: '{{ states.cover.garage_door.state }}'
+      garage_door_time_in_state:
+        friendly_name: 'Since'
+        value_template: '{{ states.cover.garage_door.attributes["time in state"] }}'
+      garage_door_wifi_signal_strength:
+        friendly_name: 'WiFi strength'
+        value_template: '{{ states.cover.garage_door.attributes["wifi signal strength (dB)"] }}'
+        unit_of_measurement: 'dB'
 
 # ZWAVE
 zwave:
@@ -303,6 +334,7 @@ group:
     view: yes
     entities:
      - group.garage_4n1
+     - group.garage_door
      - switch.plugin_switch_01_switch_13_0
      - switch.garage_overhead_lights_switch_19_0
      - switch.garage_staircase_switch_switch_16_0
@@ -361,6 +393,14 @@ group:
     name: Master Bedroom
     entities:
       - group.master_bedroom_sconces
+
+  garage_door:
+    name: Garage door
+    entities:
+      - cover.garage_door
+      - sensor.garage_door_status
+      - sensor.garage_door_time_in_state
+      - sensor.garage_door_wifi_signal_strength
 
 # Master Bedroom Sconces
   master_bedroom_sconces:
@@ -941,7 +981,7 @@ automation 6:
   trigger:
     platform: numeric_state
     entity_id: sensor.garage_4n1_sensor_temperature_3_1
-    below: 55
+    below: 60
 #  condition:
 #    condition: and
 #    conditions:
@@ -959,7 +999,7 @@ automation 6:
   trigger:
     platform: numeric_state
     entity_id: sensor.garage_4n1_sensor_temperature_3_1
-    above: 56
+    above: 61
 #  condition:
 #    condition: and
 #    conditions:
