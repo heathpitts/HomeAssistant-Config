@@ -115,6 +115,9 @@ logger:
 # Enables support for tracking state changes over time.
 history:
 
+recorder:
+  db_url: !secret mysql_hassdb
+
 # View all events in a logbook
 logbook:
   exclude:
@@ -365,6 +368,14 @@ group:
     entities:
       - sensor.pihole
 
+# Outside Lights
+  outside_lights:
+    name: Outside Lights
+    entities:
+     - switch.garage_outside_driveway_light_switch_17_0
+     - switch.front_flood_lights_switch_21_0
+     - switch.front_door_light_switch_23_0
+
 # Thermostat Group
   climate: climate.upstairs, climate.downstairs
 
@@ -438,6 +449,7 @@ group:
       - group.downstairs_lights
       - group.upstairs_lights
       - group.heath_office
+      - group.outside_lights
 
 # All Scripts Group
   all_scripts:
@@ -639,7 +651,7 @@ automation:
   trigger:
     platform: sun
     event: sunset
-    offset: '-00:20:00'
+    offset: '-00:15:00'
   action:
     service: homeassistant.turn_on
     entity_id: switch.garage_outside_driveway_light_switch_17_0
@@ -648,7 +660,7 @@ automation:
   trigger:
     platform: sun
     event: sunrise
-    offset: '+00:15:00'
+#    offset: '+00:15:00'
   action:
     service: homeassistant.turn_off
     entity_id: switch.garage_outside_driveway_light_switch_17_0
@@ -657,7 +669,7 @@ automation:
   trigger:
     platform: sun
     event: sunset
-    offset: '-00:20:00'
+    offset: '-00:15:00'
   action:
     service: homeassistant.turn_on
     entity_id: switch.front_flood_lights_switch_21_0
@@ -666,7 +678,7 @@ automation:
   trigger:
     platform: sun
     event: sunrise
-    offset: '+00:15:00'
+#    offset: '-00:15:00'
   action:
     service: homeassistant.turn_off
     entity_id: switch.front_flood_lights_switch_21_0
@@ -867,10 +879,10 @@ automation 4:
     entity_id: input_boolean.vacation
     state: 'on'
   action:
-    service: climate.set_away_mode
+    service: climate.set_hold_mode
     data:
       entity_id: group.climate
-      away_mode: true
+      hold_mode: 'away'
 
 # Away mode off for thermostats
 - alias: Set Thermostats To Home Mode
@@ -879,10 +891,10 @@ automation 4:
     entity_id: input_boolean.vacation
     state: 'off'
   action:
-    service: climate.set_away_mode
+    service: climate.set_hold_mode
     data:
       entity_id: group.climate
-      away_mode: false
+      hold_mode: 'home'
 
 # Vacation mode for Master Bedroom Sconces
 - alias: Master Bedroom Sconces OFF
