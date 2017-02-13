@@ -157,6 +157,7 @@ ecobee:
   api_key: !secret ecobee_api_key
   hold_temp: false
 
+##### TEST COMMENT #####
 envisalink:
   host: !secret envisalink4_IP
   panel_type: HONEYWELL
