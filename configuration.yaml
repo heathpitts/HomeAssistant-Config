@@ -78,10 +78,18 @@ homeassistant:
       friendly_name: Heath's Office Can Light
     sensor.garage_door_time_in_state:
       icon: mdi:timer-sand
+      homebridge_hidden: true
     sensor.garage_door_wifi_signal_strength:
       icon: mdi:wifi
+      homebridge_hidden: true
     cover.garage_door:
       homebridge_cover_type: garage_door
+    switch.homebridge_service:
+      homebridge_hidden: true
+    sensor.pihole:
+      homebridge_hidden: true
+    sun.sun:
+      homebridge_hidden: true
 
 
 # Show links to resources in log and frontend
@@ -117,6 +125,7 @@ history:
 
 recorder:
   db_url: !secret mysql_hassdb
+  purge_days: 45
 
 # View all events in a logbook
 logbook:
@@ -146,8 +155,40 @@ media_player:
 # ecobee
 ecobee:
   api_key: !secret ecobee_api_key
-  hold_temp: true
+  hold_temp: false
 
+envisalink:
+  host: 192.168.2.14
+  panel_type: HONEYWELL
+  user_name: !secret envisalink4_username
+  password: !secret envisalink4_password
+  code: !secret envisalink4_alarm_code
+  port: 4025
+  evl_version: 4
+  keepalive_interval: 60
+  zonedump_interval: 30
+#  panic_type: Police
+  zones:
+    2:
+      name: 'Mudroom Door'
+      type: 'opening'
+    3:
+      name: 'Living Room Door'
+      type: 'opening'
+    4:
+      name: 'Master Door'
+      type: 'opening'
+    5:
+      name: 'Living Room Motion'
+      type: 'motion'
+    9:
+      name: 'Front Door'
+      type: 'opening'
+  partitions:
+    1:
+      name: 'Home Alarm'
+
+# GARAGE DOOR
 cover:
   platform: garadget
   covers:
@@ -249,6 +290,23 @@ zwave:
       refresh_value: true
       delay: 5
       polling_intensity: 1
+    light.breezeway_can_lights_level_26_0:
+      refresh_value: true
+      delay: 5
+      polling_intensity: 1
+    light.breezeway_fan_level_25_0:
+      refresh_value: true
+      delay: 5
+      polling_intensity: 1
+    light.breezeway_fan_light_level_24_0:
+      refresh_value: true
+      delay: 5
+      polling_intensity: 1
+    light.mud_room_can_light_level_27_0:
+      refresh_value: true
+      delay: 5
+      polling_intensity: 1
+
 
 
 # mqtt:
@@ -273,6 +331,25 @@ switch:
         turn_off:
           service: homeassistant.turn_off
           entity_id: media_player.living_room_tv
+  - platform: command_line
+    switches:
+      homebridge_service:
+        friendly_name: 'Homebridge Service'
+        command_on: "sudo systemctl start homebridge.service"
+        command_off: "sudo systemctl stop homebridge.service"
+        command_state: "sudo systemctl status homebridge.service --full | grep -oPc 'Active: active'"
+        value_template: '{{ value == "1" }}'
+  - platform: template
+    switches:
+      armstaydisarm:
+        friendly_name: 'Arm Stay / Disarm Alarm'
+        value_template: "{{ is_state('alarm_control_panel.home_alarm', 'armed_home') }}"
+        turn_on:
+          service: script.turn_on
+          entity_id: script.armstay
+        turn_off:
+          service: script.turn_on
+          entity_id: script.disarm
 
 ############## BOOLEANS ###########
 
@@ -286,8 +363,112 @@ input_boolean:
     initial: off
 
 # SCENES
-# scene:
+scene:
+  - name: Night Time
+    entities:
+      light.living_room_can__level_7_0:
+        state: on
+        brightness: 25
+      light.kitchen_lights_level_12_0:
+        state: on
+        brightness: 50
+      light.mud_room_can_light_level_27_0:
+        state: on
+        brightness: 25
+      light.breezeway_can_lights_level_26_0:
+        state: on
+        brightness: 40
+  - name: Living Room Dim
+    entities:
+      light.living_room_can__level_7_0:
+        state: on
+        brightness: 55
+      light.kitchen_lights_level_12_0:
+        state: on
+        brightness: 80
+  - name: Leaving The House
+    entities:
+      light.living_room_can__level_7_0:
+        state: on
+        brightness: 55
+      light.kitchen_lights_level_12_0:
+        state: on
+        brightness: 80
+      light.entryway_lights_level_22_0:
+        state: off
+      switch.garage_staircase_switch_switch_16_0:
+        state: off
+      switch.mb_mollys_sconce_level_5_0:
+        state: off
+      switch.armstaydisarm:
+        state: on
+  - name: Living Room Bright
+    entities:
+      light.living_room_can__level_7_0:
+        state: on
+        brightness: 150
+      light.kitchen_lights_level_12_0:
+        state: on
+        brightness: 180
+  - name: Goodnight
+    entities:
+      light.living_room_can__level_7_0:
+        state: off
+      light.kitchen_lights_level_12_0:
+        state: off
+      light.entryway_lights_level_22_0:
+        state: off
+      light.heaths_office_can_light_level_20_0:
+        state: off
+      light.living_room_fan_level_6_0:
+        state: off
+      light.pantry_light_level_11_0:
+        state: off
+      switch.tvswitch:
+        state: off
+      switch.counter_lights_switch_8_0:
+        state: off
+      switch.front_door_light_switch_23_0:
+        state: off
+      switch.garage_overhead_lights_switch_19_0:
+        state: off
+      switch.garage_staircase_switch_switch_16_0:
+        state: off
+      switch.heaths_office_outlet_01_switch_15_0:
+        state: off
+      light.breezeway_fan_level_25_0:
+        state: off
+      light.breezeway_fan_light_level_24_0:
+        state: off
+      light.mud_room_can_light_level_27_0:
+        state: off
+      light.breezeway_can_lights_level_26_0:
+        state: off
+      switch.armstaydisarm:
+        state: on
+  - name: Breezeway Fan Low Dim
+    entities:
+      light.breezeway_can_lights_level_26_0:
+        state: on
+        brightness: 75
+      light.breezeway_fan_light_level_24_0:
+        state: on
+        brightness: 75
+      light.breezeway_fan_level_25_0:
+        state: on
+        brightness: 25
 
+  - name: Breezeway Fan Low Bright
+    entities:
+      light.breezeway_can_lights_level_26_0:
+        state: on
+        brightness: 150
+      light.breezeway_fan_light_level_24_0:
+        state: on
+        brightness: 150
+      light.breezeway_fan_level_25_0:
+        state: on
+        brightness: 25
 
 # GROUP DEFINITIONS AND SCREEN LAYOUT
 
@@ -300,8 +481,11 @@ group:
       - group.house_modes
       - group.climate
       - group.all_lights
-      - group.weather
+#      - group.weather
       - group.pihole
+      - group.all_scenes
+      - switch.homebridge_service
+      - switch.armstaydisarm
 
 # Downstairs View
   downstairs:
@@ -330,6 +514,14 @@ group:
      - switch.garage_outside_driveway_light_switch_17_0
      - switch.front_flood_lights_switch_21_0
      - switch.front_door_light_switch_23_0
+
+# Breezeway View
+  Breezeway:
+    name: Breezeway
+    view: yes
+    entities:
+     - group.breezeway_lights
+     - group.breezeway_devices
 
 # Garage View
   garage:
@@ -368,6 +560,18 @@ group:
     entities:
       - sensor.pihole
 
+# ALL SCENES
+  all_scenes:
+    name: All Scenes
+    entities:
+      - scene.night_time
+      - scene.goodnight
+      - scene.living_room_dim
+      - scene.living_room_bright
+      - scene.breezeway_fan_low_dim
+      - scene.breezeway_fan_low_bright
+      - scene.leaving_the_house
+
 # Outside Lights
   outside_lights:
     name: Outside Lights
@@ -377,7 +581,12 @@ group:
      - switch.front_door_light_switch_23_0
 
 # Thermostat Group
-  climate: climate.upstairs, climate.downstairs
+  climate:
+    name: Climate & Weather
+    entities:
+      - climate.upstairs
+      - climate.downstairs
+      - group.weather
 
 # Downstairs Lights Group
   downstairs_lights:
@@ -390,6 +599,7 @@ group:
       - switch.staircase_lights_switch_10_0
       - light.entryway_lights_level_22_0
       - group.master_bedroom_sconces
+      - light.mud_room_can_light_level_27_0
 
 # Downstairs Devices Group
   downstairs_devices:
@@ -398,6 +608,7 @@ group:
       - switch.tvswitch
       - light.living_room_fan_level_6_0
       - sensor.pantry_motion_sensor_burglar_18_10
+      - alarm_control_panel.home_alarm
 
 # Master Bedroom Group
   master_bedroom_lights:
@@ -426,6 +637,19 @@ group:
     entities:
       - switch.staircase_lights_switch_10_0
 
+# Breezeway Lights Group
+  breezeway_lights:
+    name: Breezeway Lights
+    entities:
+      - light.breezeway_can_lights_level_26_0
+      - light.breezeway_fan_light_level_24_0
+
+# Breezeway Devices Group
+  breezeway_devices:
+    name: Breezeway Devices
+    entities:
+      - light.breezeway_fan_level_25_0
+
 # Heath’s Office Lights Group
   heath_office:
     name: Heath’s Office
@@ -448,6 +672,7 @@ group:
     entities:
       - group.downstairs_lights
       - group.upstairs_lights
+      - group.breezeway_lights
       - group.heath_office
       - group.outside_lights
 
@@ -481,6 +706,8 @@ group:
       - automation.garage_door_driveway_light_off
       - automation.front_flood_lights_on
       - automation.front_flood_lights_off
+      - automation.breezeway_can_light__sunset
+      - automation.mudroom_can_light__sunset
 
 # Grouping of Weather Automations
   weather_automations:
@@ -524,6 +751,8 @@ group:
       - automation.heaths_office_off_vacation
       - automation.master_bedroom_sconces_off
       - automation.counter_lights_off
+      - automation.breezeway_lights_off
+      - automation.mudroom_lights_off
       - automation.set_thermostats_to_away_mode
       - automation.set_thermostats_to_home_mode
 
@@ -537,6 +766,11 @@ group:
   downstairs_sensors:
     name: Sensors
     entities:
+      - binary_sensor.front_door
+      - binary_sensor.living_room_door
+      - binary_sensor.living_room_motion
+      - binary_sensor.mudroom_door
+      - binary_sensor.master_door
       - sensor.downstairs_temperature
       - sensor.downstairs_humidity
       - binary_sensor.downstairs_occupancy
@@ -683,6 +917,27 @@ automation:
     service: homeassistant.turn_off
     entity_id: switch.front_flood_lights_switch_21_0
 
+- alias: Breezeway Can Light - Sunset
+  trigger:
+    platform: sun
+    event: sunset
+#    offset: '-00:37:00'
+  action:
+    service: homeassistant.turn_on
+    entity_id: light.breezeway_can_lights_level_26_0
+    data_template:
+      brightness: '110'
+
+- alias: Mudroom Can Light - Sunset
+  trigger:
+    platform: sun
+    event: sunset
+#    offset: '-00:37:00'
+  action:
+    service: homeassistant.turn_on
+    entity_id: light.mud_room_can_light_level_27_0
+    data_template:
+      brightness: '110'
 
 ############## MOTION AUTOMATIONS ################
 
@@ -696,7 +951,7 @@ automation 2:
   condition:
     condition: time
     after: '07:00:00'
-    before: '22:00:00'
+    before: '22:29:59'
   action:
     service: homeassistant.turn_on
     entity_id: light.pantry_light_level_11_0
@@ -710,13 +965,13 @@ automation 2:
     to: '8'
   condition:
     condition: time
-    after: '22:00:00'
-    before: '07:00:00'
+    after: '22:30:00'
+    before: '06:59:59'
   action:
     service: homeassistant.turn_on
     entity_id: light.pantry_light_level_11_0
     data_template:
-        brightness: '18'
+        brightness: '25'
 
 - alias: Pantry Light Off
   trigger:
@@ -736,7 +991,9 @@ automation 2:
     to: '8'
   action:
     service: homeassistant.turn_on
-    entity_id: switch.garage_overhead_lights_switch_19_0
+    entity_id:
+      - switch.garage_overhead_lights_switch_19_0
+      - switch.garage_staircase_switch_switch_16_0
 
 - alias: Garage Motion Sensor Off
   trigger:
@@ -894,7 +1151,7 @@ automation 4:
     service: climate.set_hold_mode
     data:
       entity_id: group.climate
-      hold_mode: 'home'
+      hold_mode: None
 
 # Vacation mode for Master Bedroom Sconces
 - alias: Master Bedroom Sconces OFF
@@ -915,6 +1172,41 @@ automation 4:
       - light.mb_mollys_sconce_level_5_0
       - light.mb_heaths_sconce_level_4_0
 
+# Vacation mode for Mudroom Lights
+- alias: Mudroom Lights Off
+  trigger:
+    platform: time
+    after: '22:27:00'
+  condition:
+    condition: and
+    conditions:
+      - condition: time
+        after: '22:27:00'
+      - condition: state
+        entity_id: input_boolean.vacation
+        state: 'on'
+  action:
+    service: homeassistant.turn_off
+    entity_id:
+      - light.mud_room_can_light_level_27_0
+
+# Vacation mode for Breezeway Lights
+- alias: Breezeway Lights Off
+  trigger:
+    platform: time
+    after: '22:26:00'
+  condition:
+    condition: and
+    conditions:
+      - condition: time
+        after: '22:26:00'
+      - condition: state
+        entity_id: input_boolean.vacation
+        state: 'on'
+  action:
+    service: homeassistant.turn_off
+    entity_id:
+      - light.breezeway_can_lights_level_26_0
 
 ################# AUTOMATIONS FOR HEATH OUT OF TOWN FOR WORK ###############
 
@@ -1028,6 +1320,22 @@ automation 6:
 # SCRIPTS
 
 script:
+
+  armstay:
+    alias: Arm Stay
+    sequence:
+      service: alarm_control_panel.alarm_arm_home
+      data:
+        entity_id: alarm_control_panel.home_alarm
+        code: !secret envisalink4_alarm_code
+
+  disarm:
+    alias: Disarm
+    sequence:
+      service: alarm_control_panel.alarm_disarm
+      data:
+        entity_id: alarm_control_panel.home_alarm
+        code: !secret envisalink4_alarm_code
 
   timer_5:
     alias: "5 Minute Timer"
