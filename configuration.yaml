@@ -83,6 +83,7 @@ homeassistant:
       icon: mdi:wifi
       homebridge_hidden: true
     cover.garage_door:
+      icon: mdi:garage
       homebridge_cover_type: garage_door
     switch.homebridge_service:
       homebridge_hidden: true
@@ -90,7 +91,24 @@ homeassistant:
       homebridge_hidden: true
     sun.sun:
       homebridge_hidden: true
-
+    sensor.pantry_motion_sensor_burglar_18_10:
+      friendly_name: Pantry Motion Sensor
+    group.garage_door:
+      icon: mdi:garage
+    light.living_room_fan_level_6_0:
+      icon: mdi:fan
+    light.breezeway_fan_level_25_0:
+      icon: mdi:fan
+    switch.tvswitch:
+      icon: mdi:television-guide
+    group.all_lights:
+      hidden: false
+#    group.all_automations:
+#      hidden: false
+#    group.all_scripts:
+#      hidden: false
+    group.all_switches:
+      hidden: false
 
 # Show links to resources in log and frontend
 # introduction:
@@ -104,14 +122,17 @@ http:
   ssl_certificate: !secret ssl_certificate
   ssl_key: !secret ssl_key
   # Uncomment this if you are using SSL or running in Docker etc
-  base_url: !secret duckdns_hostname
+  base_url: !secret cloudflare_hostname
 
 # Checks for available updates
 updater:
 
 logger:
   default: error
-#  logs:
+  logs:
+    homeassistant.components.switch.template: fatal
+    homeassistant.components.switch.command_line: fatal
+
 #    homeassistant.components.cover: info
 
 # Discover some devices automatically
@@ -125,7 +146,7 @@ history:
 
 recorder:
   db_url: !secret mysql_hassdb
-  purge_days: 45
+  purge_days: 14
 
 # View all events in a logbook
 logbook:
@@ -133,6 +154,14 @@ logbook:
     entities:
       - sensor.garage_door_time_in_state
       - sensor.garage_door_wifi_signal_strength
+
+#light:
+#  platform: avion
+#  devices:
+#    !secret avi_on_mac_switch_01:
+#      name: Butlers Pantry
+#      api_key: !secret avi_on_api_key
+
 
 # Track the sun
 sun:
@@ -157,7 +186,6 @@ ecobee:
   api_key: !secret ecobee_api_key
   hold_temp: false
 
-##### TEST COMMENT #####
 envisalink:
   host: !secret envisalink4_IP
   panel_type: HONEYWELL
@@ -362,6 +390,22 @@ switch:
         turn_off:
           service: script.turn_on
           entity_id: script.disarm
+  - platform: template
+    switches:
+      climateaway:
+        friendly_name: 'Climate Away / Home'
+        value_template: "{{ states.climate.downstairs.attributes.away_mode == 'on' and states.climate.upstairs.attributes.away_mode == 'on' }}"
+        turn_on:
+          service: climate.set_away_mode
+          data:
+            entity_id: group.climate
+            away_mode: true
+        turn_off:
+          service: climate.set_hold_mode
+          data:
+            entity_id: group.climate
+            hold_mode: none
+
 ############## BOOLEANS ###########
 
 input_boolean:
@@ -372,6 +416,7 @@ input_boolean:
   heath_out_of_town:
     name: Out of Town for Work
     initial: off
+    icon: 'mdi:airplane-takeoff'
 
 # SCENES
 scene:
@@ -409,9 +454,11 @@ scene:
         state: off
       switch.garage_staircase_switch_switch_16_0:
         state: off
+      light.mud_room_can_light_level_27_0:
+        state: off
       switch.mb_mollys_sconce_level_5_0:
         state: off
-      switch.armstaydisarm:
+      switch.armawaydisarm:
         state: on
   - name: Living Room Bright
     entities:
@@ -491,13 +538,13 @@ group:
     entities:
       - group.house_modes
       - group.climate
-      - group.all_lights
-#      - group.weather
+      - group.weather
+      - group.all_items
       - group.pihole
       - group.all_scenes
-      - switch.homebridge_service
-      - switch.armstaydisarm
-      - switch.armawaydisarm
+      - group.alarm
+
+
 
 # Downstairs View
   downstairs:
@@ -523,9 +570,7 @@ group:
     name: Outside
     view: yes
     entities:
-     - switch.garage_outside_driveway_light_switch_17_0
-     - switch.front_flood_lights_switch_21_0
-     - switch.front_door_light_switch_23_0
+      - group.outside_lights
 
 # Breezeway View
   Breezeway:
@@ -541,10 +586,8 @@ group:
     view: yes
     entities:
      - group.garage_4n1
-     - group.garage_door
-     - switch.plugin_switch_01_switch_13_0
-     - switch.garage_overhead_lights_switch_19_0
-     - switch.garage_staircase_switch_switch_16_0
+     - group.garage_lights
+     - group.garage_devices
 
 # Heath’s Office View
   heaths_office:
@@ -555,7 +598,7 @@ group:
 
 # Scripts & Automations View
   scripts_automations:
-    name: Scripts & Automations
+    name: S, S, & A
     view: yes
     entities:
 #      - group.all_scripts
@@ -564,6 +607,8 @@ group:
       - group.motion_automations
       - group.weather_automations
       - group.house_mode_automations
+      - group.services
+      - group.door_automations
 
 # Pi-Hole Group
   pihole:
@@ -586,7 +631,7 @@ group:
 
 # Outside Lights
   outside_lights:
-    name: Outside Lights
+    name: Lights
     entities:
      - switch.garage_outside_driveway_light_switch_17_0
      - switch.front_flood_lights_switch_21_0
@@ -594,15 +639,35 @@ group:
 
 # Thermostat Group
   climate:
-    name: Climate & Weather
+    name: Climate
     entities:
       - climate.upstairs
       - climate.downstairs
-      - group.weather
+
+  weather:
+    name: Weather
+    entities:
+      - sensor.dark_sky_summary
+      - sensor.dark_sky_temperature
+      - sensor.dark_sky_apparent_temperature
+      - sensor.dark_sky_daily_high_temperature
+      - sensor.dark_sky_daily_high_apparent_temperature
+      - sensor.dark_sky_daily_low_temperature
+      - sensor.dark_sky_daily_low_apparent_temperature
+      - sensor.dark_sky_daily_max_precip_intensity
+      - sensor.dark_sky_humidity
+      - sensor.dark_sky_precip_probability
+      - sensor.dark_sky_daily_summary
+
+# Alarm Group
+  alarm:
+    name: Alarm
+    entities:
+      - alarm_control_panel.home_alarm
 
 # Downstairs Lights Group
   downstairs_lights:
-    name: Downstairs
+    name: Lights
     entities:
       - light.living_room_can__level_7_0
       - light.kitchen_lights_level_12_0
@@ -619,8 +684,28 @@ group:
     entities:
       - switch.tvswitch
       - light.living_room_fan_level_6_0
+
+# grouping for all downstairs sensors
+  downstairs_sensors:
+    name: Sensors
+    entities:
       - sensor.pantry_motion_sensor_burglar_18_10
-      - alarm_control_panel.home_alarm
+      - binary_sensor.front_door
+      - binary_sensor.living_room_door
+      - binary_sensor.living_room_motion
+      - binary_sensor.mudroom_door
+      - binary_sensor.master_door
+      - sensor.downstairs_temperature
+      - sensor.downstairs_humidity
+      - binary_sensor.downstairs_occupancy
+      - sensor.living_room_temperature
+      - binary_sensor.living_room_occupancy
+      - sensor.master_bedroom_temperature
+      - binary_sensor.master_bedroom_occupancy
+      - sensor.master_bathroom_temperature
+      - binary_sensor.master_bathroom_occupancy
+      - sensor.mollys_office_temperature
+      - binary_sensor.mollys_office_occupancy
 
 # Master Bedroom Group
   master_bedroom_lights:
@@ -628,13 +713,26 @@ group:
     entities:
       - group.master_bedroom_sconces
 
+# Garadget Group
   garage_door:
-    name: Garage door
+    name: Garage Door
     entities:
       - cover.garage_door
       - sensor.garage_door_status
       - sensor.garage_door_time_in_state
       - sensor.garage_door_wifi_signal_strength
+
+  garage_devices:
+    name: Devices
+    entities:
+      - switch.plugin_switch_01_switch_13_0
+      - group.garage_door
+
+  garage_lights:
+    name: Lights
+    entities:
+      - switch.garage_overhead_lights_switch_19_0
+      - switch.garage_staircase_switch_switch_16_0
 
 # Master Bedroom Sconces
   master_bedroom_sconces:
@@ -645,65 +743,68 @@ group:
 
 # Upstairs Lights Group
   upstairs_lights:
-    name: Upstairs
+    name: Lights
     entities:
       - switch.staircase_lights_switch_10_0
 
 # Breezeway Lights Group
   breezeway_lights:
-    name: Breezeway Lights
+    name: Lights
     entities:
       - light.breezeway_can_lights_level_26_0
       - light.breezeway_fan_light_level_24_0
 
 # Breezeway Devices Group
   breezeway_devices:
-    name: Breezeway Devices
+    name: Devices
     entities:
       - light.breezeway_fan_level_25_0
 
 # Heath’s Office Lights Group
   heath_office:
-    name: Heath’s Office
+    name: Lights
     entities:
       - light.heaths_office_can_light_level_20_0
       - switch.heaths_office_outlet_01_switch_15_0
 
 # Garage Sensors
   garage_4n1:
-    name: Garage Sensors
+    name: Sensors
     entities:
       - sensor.garage_4n1_sensor_luminance_3_3
       - sensor.garage_4n1_sensor_relative_humidity_3_5
       - sensor.garage_4n1_sensor_burglar_3_10
       - sensor.garage_4n1_sensor_temperature_3_1
 
-# All Lights Group
-  all_lights:
-    name: All Lights
+# Services Group
+  services:
+    name: Services
     entities:
-      - group.downstairs_lights
-      - group.upstairs_lights
-      - group.breezeway_lights
-      - group.heath_office
-      - group.outside_lights
+      - switch.homebridge_service
+
+# All Items Group
+  all_items:
+    name: All Items
+    entities:
+      - group.all_lights
+      - group.all_switches
 
 # All Scripts Group
-  all_scripts:
-    name: All Scripts
-    entities:
-      - script.timer_5
-      - script.timer_10
-      - script.timer_15
+#  all_scripts:
+#    name: All Scripts
+#    entities:
+#      - script.timer_5
+#      - script.timer_10
+#      - script.timer_15
 
 # All Automations Group
-  all_automations:
-    name: All Automations
-    entities:
-      - group.daily_automations
-      - group.weather_automations
-      - group.vacation_automations
-      - group.heath_is_out_of_town_automations
+#  all_automations:
+#    name: All Automations
+#    entities:
+#      - group.daily_automations
+#      - group.weather_automations
+#      - group.vacation_automations
+#      - group.heath_is_out_of_town_automations
 
 # Grouping of Daily Home Automations
   daily_automations:
@@ -740,6 +841,11 @@ group:
       - automation.garage_motion_sensor_on
       - automation.garage_motion_sensor_off
 
+  door_automations:
+    name: Door Automations
+    entities:
+      - switch.climateaway
+
 # Grouping of House Mode Automations
   house_mode_automations:
     name: House Mode Automations
@@ -774,27 +880,6 @@ group:
     entities:
       - automation.heaths_office_off_hioot
 
-# grouping for all downstairs sensors
-  downstairs_sensors:
-    name: Sensors
-    entities:
-      - binary_sensor.front_door
-      - binary_sensor.living_room_door
-      - binary_sensor.living_room_motion
-      - binary_sensor.mudroom_door
-      - binary_sensor.master_door
-      - sensor.downstairs_temperature
-      - sensor.downstairs_humidity
-      - binary_sensor.downstairs_occupancy
-      - sensor.living_room_temperature
-      - binary_sensor.living_room_occupancy
-      - sensor.master_bedroom_temperature
-      - binary_sensor.master_bedroom_occupancy
-      - sensor.master_bathroom_temperature
-      - binary_sensor.master_bathroom_occupancy
-      - sensor.mollys_office_temperature
-      - binary_sensor.mollys_office_occupancy
-
 # grouping for all upstairs sensors
   upstairs_sensors:
     name: Sensors
@@ -808,7 +893,7 @@ group:
       - binary_sensor.guest_room_rear_occupancy
 
 # grouping for all weather sensors
-  weather:
+  weather_darksky:
     name: DarkSky
     entities:
       - sensor.dark_sky_summary
@@ -1148,10 +1233,10 @@ automation 4:
     entity_id: input_boolean.vacation
     state: 'on'
   action:
-    service: climate.set_hold_mode
+    service: climate.set_away_mode
     data:
       entity_id: group.climate
-      hold_mode: 'away'
+      away_mode: true
 
 # Away mode off for thermostats
 - alias: Set Thermostats To Home Mode
@@ -1163,7 +1248,7 @@ automation 4:
     service: climate.set_hold_mode
     data:
       entity_id: group.climate
-      hold_mode: None
+      hold_mode: none
 
 # Vacation mode for Master Bedroom Sconces
 - alias: Master Bedroom Sconces OFF
@@ -1328,6 +1413,76 @@ automation 6:
   action:
     service: homeassistant.turn_off
     entity_id: switch.plugin_switch_01_switch_13_0
+
+################# Door Automations ######################
+automation 7:
+
+- alias: Set Climate to Away Mode if doors are left open
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.mudroom_door
+      state: 'on'
+      for:
+        minutes: 2
+    - platform: state
+      entity_id: binary_sensor.living_room_door
+      state: 'on'
+      for:
+        minutes: 2
+    - platform: state
+      entity_id: binary_sensor.master_door
+      state: 'on'
+      for:
+        minutes: 2
+    - platform: state
+      entity_id: binary_sensor.front_door
+      state: 'on'
+      for:
+       minutes: 2
+  action:
+    service: climate.set_away_mode
+    data:
+      entity_id: group.climate
+      away_mode: true
+
+- alias: Restore Climate After Doors Are Closed
+  trigger:
+    - platform: state
+      entity_id: 'binary_sensor.living_room_door'
+      to: 'off'
+    - platform: state
+      entity_id: 'binary_sensor.master_door'
+      to: 'off'
+    - platform: state
+      entity_id: 'binary_sensor.front_door'
+      to: 'off'
+    - platform: state
+      entity_id: 'binary_sensor.mudroom_door'
+      to: 'off'
+#    for:
+#      minutes: 1
+  condition:
+    condition: and
+    conditions:
+      - condition: state
+        entity_id: 'binary_sensor.living_room_door'
+        state: 'off'
+      - condition: state
+        entity_id: 'binary_sensor.master_door'
+        state: 'off'
+      - condition: state
+        entity_id: 'binary_sensor.front_door'
+        state: 'off'
+      - condition: state
+        entity_id: 'binary_sensor.mudroom_door'
+        state: 'off'
+      - condition: state
+        entity_id: switch.climateaway
+        state: 'on'
+  action:
+    service: homeassistant.turn_off
+    entity_id: switch.climateaway
+
 
 # SCRIPTS
 
